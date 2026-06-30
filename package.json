@@ -1,0 +1,32 @@
+{
+  "name": "discord-slash-bot",
+  "version": "1.0.0",
+  "description": "Discord Slash-Command Bot with admin dashboard",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "build:client": "cd client && npm run build",
+    "setup:db": "node scripts/setup-db.js",
+    "register:commands": "node scripts/register-commands.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "pg": "^8.11.3",
+    "tweetnacl": "^1.0.3",
+    "node-fetch": "^2.7.0",
+    "dotenv": "^16.3.1",
+    "connect-pg-simple": "^9.0.1",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

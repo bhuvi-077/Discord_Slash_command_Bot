@@ -1,0 +1,80 @@
+/* ── Design tokens ──────────────────────────────────────────────
+   Theme: "mission control" — a command deck for watching live bot
+   traffic. Dark, technical, monospace-driven, inspired by terminal
+   UIs and radar/sonar displays rather than generic SaaS dashboards.
+   Color: deep slate background, signal-green accent (like a scope),
+   amber for warnings, red for failures — borrowed from instrument
+   panels, not Bootstrap defaults.
+------------------------------------------------------------------ */
+
+:root {
+  --bg-void: #0b0e0f;
+  --bg-panel: #121617;
+  --bg-panel-raised: #181d1f;
+  --line: #232a2c;
+  --line-bright: #34403f;
+
+  --signal: #5eead4;       /* teal-green "scope" accent */
+  --signal-dim: #2a4a47;
+  --amber: #f5a623;
+  --red: #ef4444;
+  --text-primary: #e8ecec;
+  --text-secondary: #8b9694;
+  --text-faint: #5a6462;
+
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, Monaco, monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --radius: 3px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root { min-height: 100vh; }
+
+::selection { background: var(--signal-dim); color: var(--signal); }
+
+a { color: var(--signal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Focus visibility — accessibility floor */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Scrollbar (subtle, matches the void) ── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-void); }
+::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
