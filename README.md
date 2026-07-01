@@ -2,8 +2,8 @@
 
 A full-stack app: a Discord bot that responds to slash commands, plus an admin web dashboard to monitor and configure it.
 
-**Live URL:** `<fill in after deploying>`
-**Repo:** `<fill in after pushing to GitHub>`
+**Live URL:** `https://discord-slash-command-bot-quej.onrender.com`
+**Repo:** `https://github.com/bhuvi-077/Discord_Slash_command_Bot`
 
 ---
 
