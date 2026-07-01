@@ -34,7 +34,7 @@ Discord ──POST /interactions──▶ Express ──▶ verify Ed25519 signa
                                           ──▶ dedup on interaction.id (Postgres)
                                           ──▶ respond DEFERRED (within 3s)
                                           ──▶ (async) run command handler
-                                                  ├─ optional AI triage (Gemini)
+                                                  ├─ optional AI triage (Groq)
                                                   ├─ edit Discord response
                                                   ├─ post to configured channel
                                                   ├─ mirror to Slack/Discord webhook (retried 3x)
@@ -63,7 +63,7 @@ Admin ──▶ React dashboard ──▶ Express session auth ──▶ /api/da
 - A free [Neon](https://neon.tech) Postgres database
 - A Discord application via the [Developer Portal](https://discord.com/developers/applications)
 - A Slack Incoming Webhook URL, or a second Discord channel's webhook URL, for mirroring
-- (Optional) A free Gemini API key from [Google AI Studio](https://aistudio.google.com)
+- A free Groq API key from [Groq Console](https://console.groq.com) — faster and simpler than Gemini, also free with no card required
 
 ### 1. Discord application setup
 1. Create an application at the Developer Portal.
