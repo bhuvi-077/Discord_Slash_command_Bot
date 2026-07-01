@@ -121,7 +121,7 @@ npm start
 
 1. Push this repo to GitHub.
 2. On [Render](https://render.com), create a **Web Service** from the repo.
-3. Build command: `npm install && npm run build:client`
+3. Build command: `npm install && cd client && npm install && cd .. && npm run build:client`
 4. Start command: `npm start`
 5. Add all variables from `.env.example` as environment variables in Render's dashboard (use your real values — `DATABASE_URL` from Neon, etc.). Set `APP_URL` to the Render URL Render gives you, and `NODE_ENV=production`.
 6. Once deployed, run the one-time DB setup and command registration **locally**, pointed at the same `DATABASE_URL`/Discord credentials (or run them as a Render one-off job):
