@@ -16,7 +16,7 @@ A full-stack app: a Discord bot that responds to slash commands, plus an admin w
 
 ### Stretch goals implemented
 - **Configurable command rules in the UI** — toggle a command on/off, toggle mirroring, toggle AI triage, and set a custom reply template (with `{user}`, `{text}`, `{severity}` placeholders) per server.
-- **AI triage step** — `/report` can optionally run through Google Gemini (free tier) to produce a summary, tags, and a suggested priority, shown in both the Discord reply and the dashboard.
+- **AI triage step** — `/report` runs through Groq (free tier, llama-3.1-8b-instant model) to produce a summary, tags, and a suggested priority, shown in both the Discord reply and the dashboard.
 - **Observability** — every interaction is logged with status (`processed`/`failed`/`disabled`), processing time in ms, whether the mirror succeeded, and the raw error message on failure, all visible in the dashboard.
 - **Dedup** — Discord interaction IDs are unique-constrained in Postgres; duplicate deliveries are detected and skipped without double-processing.
 - **Defer + follow-up** — every command immediately returns a deferred response (within Discord's 3-second window), then does the slower work (AI call, DB write, mirror) asynchronously and edits the response in.
@@ -63,7 +63,7 @@ Admin ──▶ React dashboard ──▶ Express session auth ──▶ /api/da
 - A free [Neon](https://neon.tech) Postgres database
 - A Discord application via the [Developer Portal](https://discord.com/developers/applications)
 - A Slack Incoming Webhook URL, or a second Discord channel's webhook URL, for mirroring
-- A free Groq API key from [Groq Console](https://console.groq.com) — faster and simpler than Gemini, also free with no card required
+- (Optional) A free Groq API key from [Groq Console](https://console.groq.com) — for AI triage on `/report`
 
 ### 1. Discord application setup
 1. Create an application at the Developer Portal.
@@ -76,7 +76,7 @@ Admin ──▶ React dashboard ──▶ Express session auth ──▶ /api/da
 ```bash
 cp .env.example .env
 ```
-Fill in `DISCORD_APP_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN`, `DATABASE_URL` (from Neon), `SESSION_SECRET` (any long random string), `ADMIN_USERNAME`/`ADMIN_PASSWORD`, and `MIRROR_WEBHOOK_URL`.
+Fill in `DISCORD_APP_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN`, `DATABASE_URL` (from Neon), `SESSION_SECRET` (any long random string), `ADMIN_USERNAME`/`ADMIN_PASSWORD`, `MIRROR_WEBHOOK_URL`, and optionally `GROQ_API_KEY`.
 
 ### 3. Install and set up the database
 ```bash
@@ -96,17 +96,22 @@ Discord requires a **public HTTPS URL** for the interactions endpoint — `local
 npx localtunnel --port 3000
 # or: ngrok http 3000
 ```
+
+**Important notes for local tunneling:**
+- Keep both terminals open simultaneously — the backend (`npm run dev`) and the tunnel. Closing either drops all in-flight requests silently.
+- Every time you restart localtunnel, you get a new URL — update Discord's Interactions Endpoint URL each time.
+- localtunnel can be flaky on Windows; ngrok is more stable if you can get it installed.
+- Visit the tunnel URL in a browser first to click through any interstitial warning page before testing Discord commands.
+
 Set that tunnel URL + `/interactions` as the **Interactions Endpoint URL** in the Discord Developer Portal (General Information tab). Discord will immediately send a PING to verify it.
 
-Then, in two terminals:
+Then start the backend:
 ```bash
-# Terminal 1 — backend
+# Terminal 1 — backend (watches only src/ to avoid false restarts)
 npm run dev
-
-# Terminal 2 — frontend (dev mode with hot reload, proxies API calls to :3000)
-cd client && npm start
 ```
-Dashboard: `http://localhost:3001` (CRA dev server). Backend API: `http://localhost:3000`.
+
+Dashboard is available at your tunnel URL (same as the interactions endpoint, just without `/interactions`).
 
 ### 6. Build for production locally (optional check)
 ```bash
@@ -123,13 +128,14 @@ npm start
 2. On [Render](https://render.com), create a **Web Service** from the repo.
 3. Build command: `npm install && cd client && npm install && cd .. && npm run build:client`
 4. Start command: `npm start`
-5. Add all variables from `.env.example` as environment variables in Render's dashboard (use your real values — `DATABASE_URL` from Neon, etc.). Set `APP_URL` to the Render URL Render gives you, and `NODE_ENV=production`.
-6. Once deployed, run the one-time DB setup and command registration **locally**, pointed at the same `DATABASE_URL`/Discord credentials (or run them as a Render one-off job):
+5. Add all variables from `.env.example` as environment variables in Render's dashboard (use your real values). Set `APP_URL` to the Render URL and `NODE_ENV=production`. Do **not** set `PORT` — Render sets that automatically.
+6. Once deployed, run the one-time DB setup and command registration **locally** pointed at the same credentials:
    ```bash
    npm run setup:db
    npm run register:commands
    ```
-7. In the Discord Developer Portal, set the **Interactions Endpoint URL** to `https://<your-render-url>/interactions`. Discord will PING it — if it doesn't go green, check Render's logs.
+7. In the Discord Developer Portal, set the **Interactions Endpoint URL** to `https://<your-render-url>/interactions`. Discord will PING it — if it goes green, you're live.
+8. (Recommended) Add a free [UptimeRobot](https://uptimerobot.com) monitor pinging `https://<your-render-url>/health` every 5 minutes to prevent Render's free tier from spinning down.
 
 ---
 
@@ -137,8 +143,8 @@ npm start
 
 1. Open the deployed URL, sign in with the admin credentials.
 2. Go to **Configure → Connect a server**, paste your test server's Discord guild ID, pick a channel, click Connect.
-3. In Discord, run `/report text: Login page is broken severity: high`.
-4. You should see: an ephemeral reply in Discord, a message posted to your configured channel, a mirrored notification in Slack/the second Discord channel, and a new row in the dashboard's **Live log** tab within a few seconds.
+3. In Discord, run `/report` with some text and a severity level.
+4. You should see: an ephemeral reply in Discord (with AI triage if Groq key is set), a message posted to your configured channel, a mirrored notification in Slack/the second Discord channel, and a new row in the dashboard's **Live log** tab within a few seconds.
 
 ---
 
