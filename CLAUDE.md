@@ -9,7 +9,7 @@ A Discord slash-command bot (Express + Postgres backend, React admin dashboard) 
 
 1. **Never relax the `/interactions` raw-body handling.** That route must receive the unparsed request body (`express.raw({ type: 'application/json' })`) before any signature verification happens, and `JSON.parse` must only run *inside* `verifyDiscordSignature` after the Ed25519 check passes. Re-serializing `req.body` and signing/verifying that is wrong — see `AI_NOTES.md` for why this specific mistake happened once already.
 
-2. **Never log or expose secrets.** `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `MIRROR_WEBHOOK_URL`, and `GEMINI_API_KEY` must never appear in `console.log`, client-side code/bundles, or committed files. They're read from `process.env` only. If you add a new secret, add it to `.env.example` with a placeholder, not a real value.
+2. **Never log or expose secrets.** `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `MIRROR_WEBHOOK_URL`, `GROQ_API_KEY`, and `GEMINI_API_KEY` must never appear in `console.log`, client-side code/bundles, or committed files. They're read from `process.env` only. If you add a new secret, add it to `.env.example` with a placeholder, not a real value.
 
 3. **Respect Discord's ~3 second response window.** Any new command handler must either respond synchronously and fast, or use the defer pattern already established in `src/routes/interactions.js` (`DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE` immediately, then `editInteractionResponse` after async work). Don't `await` slow work (AI calls, webhook POSTs) before the first response.
 
@@ -26,7 +26,7 @@ A Discord slash-command bot (Express + Postgres backend, React admin dashboard) 
 ## Where things live
 - `src/routes/interactions.js` — Discord command logic (the core of the app)
 - `src/middleware/verifyDiscord.js` — signature verification (security-critical, see rule 1)
-- `src/utils/` — AI (Gemini), mirror webhooks, Discord REST helpers
+- `src/utils/` — AI (Groq/Gemini), mirror webhooks, Discord REST helpers
 - `scripts/setup-db.js` — schema; run after any schema change
 - `client/src/pages/DashboardPage.js` — main dashboard orchestration; most new dashboard features start here
 
