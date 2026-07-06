@@ -192,18 +192,119 @@ async function handleReport(interaction, config, serverConfig, startTime) {
 }
 
 /**
- * Process /status command — quick system status check.
+ * Process /status command — returns real live stats from the database,
+ * matching what the admin dashboard shows, plus the current interaction details.
  */
 async function handleStatus(interaction, config, serverConfig, startTime) {
   const { id, token, guild_id, channel_id, member } = interaction;
   const username = member?.user?.username || 'Unknown';
   const serverName = serverConfig?.name || guild_id;
 
-  const statusText = config.auto_reply || '✅ All systems operational. Bot is running normally.';
+  // Interaction type names for display
+  const interactionTypeNames = {
+    1: 'PING',
+    2: 'APPLICATION_COMMAND (Slash Command)',
+    3: 'MESSAGE_COMPONENT (Button/Menu)',
+    5: 'MODAL_SUBMIT',
+  };
+  const interactionTypeName = interactionTypeNames[interaction.type] || `UNKNOWN (${interaction.type})`;
 
-  await editInteractionResponse(token, {
-    content: `📊 **System Status**\n${statusText}\n\n_Checked by ${username} at <t:${Math.floor(Date.now() / 1000)}:T>_`,
-  });
+  let responseText;
+
+  try {
+    // Fetch real live stats from the database — same data as the dashboard
+    const [total, last24h, failed, servers, lastInteraction] = await Promise.all([
+      query('SELECT COUNT(*) FROM interactions'),
+      query("SELECT COUNT(*) FROM interactions WHERE created_at > NOW() - INTERVAL '24 hours'"),
+      query("SELECT COUNT(*) FROM interactions WHERE status = 'failed'"),
+      query('SELECT COUNT(*) FROM servers'),
+      query("SELECT id, command_name, status, created_at FROM interactions ORDER BY created_at DESC LIMIT 1"),
+    ]);
+
+    const totalCount    = parseInt(total.rows[0].count, 10);
+    const last24hCount  = parseInt(last24h.rows[0].count, 10);
+    const failedCount   = parseInt(failed.rows[0].count, 10);
+    const serversCount  = parseInt(servers.rows[0].count, 10);
+    const lastRow       = lastInteraction.rows[0];
+
+    // Use custom reply if set, otherwise show full live stats
+    if (config.auto_reply) {
+      responseText = config.auto_reply;
+      await editInteractionResponse(token, { content: responseText });
+    } else {
+      await editInteractionResponse(token, {
+        embeds: [{
+          title: '📊 Command Deck — Live Status',
+          color: 0x5eead4,
+          fields: [
+            // Dashboard stats
+            {
+              name: '📈 Total Commands',
+              value: `\`${totalCount}\``,
+              inline: true,
+            },
+            {
+              name: '🕐 Last 24 Hours',
+              value: `\`${last24hCount}\``,
+              inline: true,
+            },
+            {
+              name: '❌ Failed',
+              value: failedCount > 0 ? `\`${failedCount}\`` : '`0`',
+              inline: true,
+            },
+            {
+              name: '🖥️ Connected Servers',
+              value: `\`${serversCount}\``,
+              inline: true,
+            },
+            {
+              name: '✅ System',
+              value: '`Operational`',
+              inline: true,
+            },
+            {
+              name: '⚡ Uptime',
+              value: '`Online`',
+              inline: true,
+            },
+            // Last interaction details
+            ...(lastRow ? [{
+              name: '🕵️ Last Interaction',
+              value: [
+                `ID: \`${lastRow.id}\``,
+                `Command: \`/${lastRow.command_name}\``,
+                `Status: \`${lastRow.status}\``,
+                `Time: <t:${Math.floor(new Date(lastRow.created_at).getTime() / 1000)}:R>`,
+              ].join('\n'),
+              inline: false,
+            }] : []),
+            // Current interaction details
+            {
+              name: '🔍 This Interaction',
+              value: [
+                `ID: \`${id}\``,
+                `Type: \`${interactionTypeName}\``,
+                `Requested by: \`${username}\``,
+                `Server: \`${serverName}\``,
+              ].join('\n'),
+              inline: false,
+            },
+          ],
+          footer: {
+            text: `Checked by ${username} • Command Deck Bot`,
+          },
+          timestamp: new Date().toISOString(),
+        }],
+      });
+      responseText = `Live stats shown — ${totalCount} total, ${last24hCount} last 24h, ${failedCount} failed`;
+    }
+  } catch (err) {
+    // Fallback if DB query fails
+    console.error('[Status] DB query failed:', err.message);
+    responseText = '✅ Bot is online and running. Could not fetch live stats right now.';
+    await editInteractionResponse(token, { content: responseText });
+  }
 
   let mirrored = false;
   if (config.mirror_enabled) {
@@ -220,7 +321,7 @@ async function handleStatus(interaction, config, serverConfig, startTime) {
   await updateInteraction(id, {
     serverId: guild_id, serverName, channelId: channel_id,
     userId: member?.user?.id, username, commandName: 'status',
-    options: {}, status: 'processed', responseText: statusText,
+    options: {}, status: 'processed', responseText,
     mirrored, processingMs,
   });
 }
